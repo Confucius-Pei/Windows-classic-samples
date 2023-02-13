@@ -1,8 +1,11 @@
+#include "pch.h"
+
 #include <windows.h>
 #include <d2d1.h>
 #pragma comment(lib, "d2d1")
 
 #include "basewin.h"
+using namespace winrt::Windows::System::Diagnostics;
 
 template <class T> void SafeRelease(T **ppT)
 {
@@ -119,6 +122,11 @@ void MainWindow::Resize()
         pRenderTarget->Resize(size);
         CalculateLayout();
         InvalidateRect(m_hwnd, NULL, FALSE);
+
+        auto procInfo = ProcessDiagnosticInfo::GetForCurrentProcess();
+        auto cpuUsage = procInfo.CpuUsage();
+
+        auto sysInfo = SystemDiagnosticInfo::GetForCurrentSystem();
     }
 }
 
