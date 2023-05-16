@@ -14,6 +14,9 @@
 #include <windows.ui.notifications.h>
 #include "NotificationActivationCallback.h"
 
+#include <WindowsAppSDK-VersionInfo.h>
+#include <MddBootstrap.h>
+
 //  Name:     System.AppUserModel.ToastActivatorCLSID -- PKEY_AppUserModel_ToastActivatorCLSID
 //  Type:     Guid -- VT_CLSID
 //  FormatID: {9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3}, 26
@@ -127,6 +130,10 @@ CoCreatableClass(NotificationActivator);
 // Main function
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int)
 {
+    if (FAILED(MddBootstrapInitialize(Microsoft::WindowsAppSDK::Release::MajorMinor, Microsoft::WindowsAppSDK::Release::VersionTag, PACKAGE_VERSION{}))) {
+        throw std::exception("Error in Bootstrap initialization");
+    }
+
     RoInitializeWrapper winRtInitializer(RO_INIT_MULTITHREADED);
 
     HRESULT hr = winRtInitializer;
@@ -140,6 +147,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR, _
         }
     }
 
+    // Release the DDLM and clean up.
+    MddBootstrapShutdown();
     return SUCCEEDED(hr);
 }
 
