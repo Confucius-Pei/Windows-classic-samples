@@ -584,10 +584,12 @@ HRESULT DesktopToastsApp::CreateToast(IToastNotificationManagerStatics* toastMan
                     {
                         hr = toast->add_Failed(Callback < Implements < RuntimeClassFlags<ClassicCom>,
                             ITypedEventHandler<ToastNotification*, ToastFailedEventArgs* >> >(
-                            [](IToastNotification*, IToastFailedEventArgs* /*e */)
+                            [](IToastNotification*, IToastFailedEventArgs* e)
                         {
+                                    HRESULT hr{};
+                                    e->get_ErrorCode(&hr);
                             DesktopToastsApp::GetInstance()->SetMessage(L"The toast encountered an error.");
-                            return S_OK;
+                            return hr;
                         }).Get(),
                             &failedToken);
 
