@@ -7,12 +7,12 @@
 #include <winrt/Windows.ui.xaml.media.h>
 
 #include <windows.ui.xaml.hosting.desktopwindowxamlsource.h>
-//#include <winrt/MyUWPApp.h>
+#include <winrt/MyUWPApp.h>
 
 using namespace winrt;
 using namespace winrt::Windows::UI;
 using namespace winrt::Windows::UI::Composition;
-using namespace winrt::Windows::UI::Xaml::Hosting;
+using namespace Windows::UI::Xaml::Hosting;
 using namespace winrt::Windows::Foundation::Numerics;
 
 class DesktopToastsApp
@@ -54,14 +54,14 @@ DesktopToastsApp* DesktopToastsApp::s_currentInstance = nullptr;
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int)
 {
     // The call to winrt::init_apartment initializes COM; by default, in a multithreaded apartment.
-    winrt::init_apartment(apartment_type::single_threaded);
+    winrt::init_apartment();
 
     DesktopToastsApp app;
     app.Initialize(hInstance);
 
     // Begin XAML Island section.
 
-    //auto hostApp = winrt::MyUWPApp::App{};
+    auto hostApp = winrt::MyUWPApp::App{};
 
     // Initialize the XAML framework's core window for the current thread.
     auto winxamlmanager = WindowsXamlManager::InitializeForCurrentThread();
@@ -98,8 +98,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR, _
     xamlContainer.Children().Append(tb);
     xamlContainer.UpdateLayout();
 
-    //auto _myUserControl = winrt::MyUWPApp::MyUserControl();
-    desktopSource.Content(xamlContainer);
+    auto _myUserControl = winrt::MyUWPApp::MyUserControl();
+    desktopSource.Content(_myUserControl);
 
     // End XAML Island section.
 
