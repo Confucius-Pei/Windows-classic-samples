@@ -14,6 +14,23 @@
 #include <windows.ui.notifications.h>
 #include "NotificationActivationCallback.h"
 
+//#include <windows.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.system.h>
+#include <winrt/windows.ui.xaml.hosting.h>
+#include <windows.ui.xaml.hosting.desktopwindowxamlsource.h>
+#include <winrt/windows.ui.xaml.controls.h>
+#include <winrt/Windows.ui.xaml.media.h>
+
+using namespace winrt;
+using namespace winrt::Windows::UI;
+using namespace winrt::Windows::UI::Composition;
+using namespace winrt::Windows::UI::Xaml::Hosting;
+using namespace winrt::Windows::Foundation::Numerics;
+
 //  Name:     System.AppUserModel.ToastActivatorCLSID -- PKEY_AppUserModel_ToastActivatorCLSID
 //  Type:     Guid -- VT_CLSID
 //  FormatID: {9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3}, 26
@@ -45,6 +62,8 @@ public:
     {
         return s_currentInstance;
     }
+
+    HWND m_hwnd = nullptr;
 
     DesktopToastsApp();
     ~DesktopToastsApp();
@@ -94,7 +113,6 @@ private:
         _In_ ABI::Windows::Data::Xml::Dom::IXmlDocument* xml
         );
 
-    HWND m_hwnd = nullptr;
     HWND m_hEdit = nullptr;
 
     static const WORD HM_TEXTBUTTON = 1;
@@ -127,6 +145,9 @@ CoCreatableClass(NotificationActivator);
 // Main function
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int)
 {
+    // The call to winrt::init_apartment initializes COM; by default, in a multithreaded apartment.
+    // winrt::init_apartment(apartment_type::single_threaded);
+
     RoInitializeWrapper winRtInitializer(RO_INIT_MULTITHREADED);
 
     HRESULT hr = winRtInitializer;
@@ -134,6 +155,47 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPWSTR, _
     {
         DesktopToastsApp app;
         hr = app.Initialize(hInstance);
+
+        // Begin XAML Island section.
+
+        // Initialize the XAML framework's core window for the current thread.
+        WindowsXamlManager winxamlmanager = WindowsXamlManager::InitializeForCurrentThread();
+
+        // This DesktopWindowXamlSource is the object that enables a non-UWP desktop application 
+        // to host WinRT XAML controls in any UI element that is associated with a window handle (HWND).
+        DesktopWindowXamlSource desktopSource;
+
+        // Get handle to the core window.
+        auto interop = desktopSource.as<IDesktopWindowXamlSourceNative>();
+
+        // Parent the DesktopWindowXamlSource object to the current window.
+        check_hresult(interop->AttachToWindow(app.m_hwnd));
+
+        // This HWND will be the window handler for the XAML Island: A child window that contains XAML.  
+        HWND hWndXamlIsland = nullptr;
+
+        // Get the new child window's HWND. 
+        interop->get_WindowHandle(&hWndXamlIsland);
+
+        // Update the XAML Island window size because initially it is 0,0.
+        SetWindowPos(hWndXamlIsland, 0, 0, 85, 300, 30, SWP_SHOWWINDOW);
+
+        // Create the XAML content.
+        winrt::Windows::UI::Xaml::Controls::StackPanel xamlContainer;
+        xamlContainer.Background(winrt::Windows::UI::Xaml::Media::SolidColorBrush{ winrt::Windows::UI::Colors::LightGray() });
+
+        winrt::Windows::UI::Xaml::Controls::TextBlock tb;
+        tb.Text(L"Hello World from Xaml Islands!");
+        tb.VerticalAlignment(winrt::Windows::UI::Xaml::VerticalAlignment::Center);
+        tb.HorizontalAlignment(winrt::Windows::UI::Xaml::HorizontalAlignment::Center);
+        tb.FontSize(18);
+
+        xamlContainer.Children().Append(tb);
+        xamlContainer.UpdateLayout();
+        desktopSource.Content(xamlContainer);
+
+        // End XAML Island section.
+
         if (SUCCEEDED(hr))
         {
             app.RunMessageLoop();
@@ -372,7 +434,7 @@ HRESULT DesktopToastsApp::SetMessage(PCWSTR message)
 HRESULT DesktopToastsApp::DisplayToast()
 {
     ComPtr<IToastNotificationManagerStatics> toastStatics;
-    HRESULT hr = Windows::Foundation::GetActivationFactory(
+    HRESULT hr = ::Windows::Foundation::GetActivationFactory(
         HStringReference(RuntimeClass_Windows_UI_Notifications_ToastNotificationManager).Get(),
         &toastStatics);
     if (SUCCEEDED(hr))
@@ -517,7 +579,7 @@ HRESULT DesktopToastsApp::CreateToast(IToastNotificationManagerStatics* toastMan
     if (SUCCEEDED(hr))
     {
         ComPtr<IToastNotificationFactory> factory;
-        hr = Windows::Foundation::GetActivationFactory(
+        hr = ::Windows::Foundation::GetActivationFactory(
             HStringReference(RuntimeClass_Windows_UI_Notifications_ToastNotification).Get(),
             &factory);
         if (SUCCEEDED(hr))
